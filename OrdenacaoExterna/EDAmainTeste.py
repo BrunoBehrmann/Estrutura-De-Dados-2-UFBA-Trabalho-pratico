@@ -1,16 +1,28 @@
 import heapq
 
+def zera_peso_heap(heap):
+    heap = [list(item) for item in heap]  # Converte cada tupla em lista
+    for i in range(len(heap)):
+        heap[i][1] = 0  # Agora você pode modificar o segundo elemento
+    qnt_numeros_com_peso = 0
+    heapZerada = [tuple(item) for item in heap]
+    return heapZerada
+
 
 def adicionar_com_peso(heap, valor, peso):
     # Inserindo como uma tupla (valor, peso)
     heapq.heappush(heap, (valor, peso))
 
-def remove_menor_heap(heap)
+def remove_menor_heap(heap):
     menor, menor_peso = extrair_menor_com_peso_0(heap)
     # IMPLEMENTAR
-    heapq.heappop(heap)
+    for i in range(len(heap)):
+        if (heap[i][0] == menor and heap[i][1] == menor_peso):
+            heap.remove(heap[i])
+            break
+        #heapq.heappop(heap)
 
-def extrair_menor_com_peso_0(heap):
+def extrair_menor_com_peso_0(heap): # ajudem a melhorar esse método pessoal #
     # Itera sobre a heap para encontrar o menor elemento com peso 0
 
     for i in range(len(heap)):
@@ -47,6 +59,9 @@ def multicaminhos(m, k, r, n, entradas):
             adicionar_com_peso(heap, numero_atual, 0)
         else:
 
+            if (qnt_numeros_com_peso == 3):
+                heap = zera_peso_heap(heap)
+
             menor, menor_peso = extrair_menor_com_peso_0(heap)
 
             # Se o número atual é >= ao menor número da heap
@@ -72,8 +87,12 @@ def multicaminhos(m, k, r, n, entradas):
                 # Se o menor número da heap for menor que o último da sequência
                 # e o menor número está com peso 0, ele recebe peso 1
                 if menor_peso == 0:
+                    # Adicionar o menor na sequência atual
+                    sequencia_atual.append(menor)
+                    ultimo_elemento = menor
+
                     # Remover o menor da heap
-                    heapq.heappop(heap)
+                    remove_menor_heap(heap)
 
                     adicionar_com_peso(heap, numero_atual, 1)
                     qnt_numeros_com_peso += 1
@@ -85,6 +104,7 @@ def multicaminhos(m, k, r, n, entradas):
             if len(sequencia_atual) >= (n // m):
                 sequencias.append(sequencia_atual)
                 sequencia_atual = []
+                heap = zera_peso_heap(heap)
 
             # Se a heap ficou vazia, recomeça com os elementos restantes
             if len(heap) == 0:
@@ -93,41 +113,8 @@ def multicaminhos(m, k, r, n, entradas):
     # Adicionar a última sequência se houver elementos
     if sequencia_atual:
         sequencias.append(sequencia_atual)
-
+    print(sequencias)
     return sequencias
-
-    '''
-    # Divide a lista em k sublistas
-    sublists = [numeros[i::k] for i in range(k)]
-
-    # Ordena cada sublista individualmente
-    sublists = [sorted(sublist) for sublist in sublists]
-
-    # Início do processo de K-way Merge Sort
-    min_heap = []
-
-    # Adiciona o primeiro elemento de cada sublista no heap com seus respectivos índices
-    for i, lst in enumerate(sublists):
-        if lst:  # Verifica se a lista não está vazia
-            heapq.heappush(min_heap, (lst[0], i, 0))
-
-    sorted_list = []
-
-    # Realiza o processo de merge
-    while min_heap:
-        val, list_idx, element_idx = heapq.heappop(min_heap)
-        sorted_list.append(val)
-
-        # Se ainda houver elementos na sublista, adiciona o próximo ao heap
-        if element_idx + 1 < len(sublists[list_idx]):
-            next_tuple = (sublists[list_idx][element_idx + 1], list_idx, element_idx + 1)
-            heapq.heappush(min_heap, next_tuple)
-
-    # Fim do processo de K-way Merge Sort
-
-    print("Lista ordenada pelo método multicaminhos:\n", sorted_list)
-    return sorted_list
-    '''
 
 def polifasica():
     # Geração da sequência de Fibonacci
@@ -233,18 +220,23 @@ minimo = 1
 maximo = 100
 numeros = [random.randint(minimo, maximo) for i in range(n)] # Gera e armazena n números aleatórios em uma lista
 print("Números aleatórios gerados:\n", numeros) # Imprime a lista de números aleatórios
-"""
 N = "B"
 m = 3
 k = 4
 r = 3
 n = 17
+# 7 1 5 6 3 8 2 10 4 9 1 3 7 4 1 2 3
+"""
 
 with open("entrada.txt", "r") as file:
-    entrada = file.read()
+    # Lendo a primeira linha e atribuindo o valor à variável N
+    N = file.readline().strip()
 
-# Convertendo o conteúdo do arquivo em uma lista de inteiros
-numeros = list(map(int, entrada.split(' ')))
+    # Lendo a segunda linha e atribuindo os valores às variáveis m, k, r, n
+    m, k, r, n = map(int, file.readline().split())
+
+    # Lendo a terceira linha e convertendo em uma lista de inteiros
+    numeros = list(map(int, file.readline().split()))
 
 if N=="B":
     multicaminhos(m,k,r,n,numeros)
