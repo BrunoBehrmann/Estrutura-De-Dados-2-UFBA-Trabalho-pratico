@@ -4,9 +4,8 @@ def zera_peso_heap(heap):
     heap = [list(item) for item in heap]  # Converte cada tupla em lista
     for i in range(len(heap)):
         heap[i][1] = 0  # Agora você pode modificar o segundo elemento
-    qnt_numeros_com_peso = 0
     heapZerada = [tuple(item) for item in heap]
-    return heapZerada
+    return heapZerada, 0
 
 
 def adicionar_com_peso(heap, valor, peso):
@@ -60,7 +59,7 @@ def multicaminhos(m, k, r, n, entradas):
         else:
 
             if (qnt_numeros_com_peso == 3):
-                heap = zera_peso_heap(heap)
+                heap, qnt_numeros_com_peso = zera_peso_heap(heap)
 
             menor, menor_peso = extrair_menor_com_peso_0(heap)
 
@@ -104,7 +103,8 @@ def multicaminhos(m, k, r, n, entradas):
             if len(sequencia_atual) >= (n // m):
                 sequencias.append(sequencia_atual)
                 sequencia_atual = []
-                heap = zera_peso_heap(heap)
+                heap, qnt_numeros_com_peso = zera_peso_heap(heap)
+                ultimo_elemento = 0
 
             # Se a heap ficou vazia, recomeça com os elementos restantes
             if len(heap) == 0:
