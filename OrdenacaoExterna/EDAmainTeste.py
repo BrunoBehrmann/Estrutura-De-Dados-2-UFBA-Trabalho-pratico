@@ -5,19 +5,32 @@ def adicionar_com_peso(heap, valor, peso):
     # Inserindo como uma tupla (valor, peso)
     heapq.heappush(heap, (valor, peso))
 
+def remove_menor_heap(heap)
+    menor, menor_peso = extrair_menor_com_peso_0(heap)
+    # IMPLEMENTAR
+    heapq.heappop(heap)
 
 def extrair_menor_com_peso_0(heap):
     # Itera sobre a heap para encontrar o menor elemento com peso 0
-    for i in range(len(heap)):
-        valor, peso = heap[0]
 
+    for i in range(len(heap)):
+        valor, peso = heap[i]
         if peso == 0:
             if i == 0:
-                valorMinHeap = valor
-            else:
-                if  valorMinHeap > valor:
-                    menorPeso0 = valor
-                    menor, menor_peso = valor, peso
+                valor01 = valor, peso
+            elif i == 1:
+                valor02 = valor, peso
+            elif i == 2:
+                valor03 = valor, peso
+        else:
+            if i == 0:
+                valor01 = 9999, peso
+            elif i == 1:
+                valor02 = 9999, peso
+            elif i == 2:
+                valor03 = 9999, peso
+
+    menor, menor_peso = min(valor01, valor02, valor03)
     return menor, menor_peso
 
 
@@ -44,7 +57,8 @@ def multicaminhos(m, k, r, n, entradas):
                 ultimo_elemento = menor
 
                 # Remover o menor da heap
-                heapq.heappop(heap)
+                remove_menor_heap(heap)
+
 
                 # Adicionar o número atual à heap
                 if (numero_atual >= ultimo_elemento):
