@@ -1,51 +1,37 @@
 import heapq
 
-def zera_peso_heap(heap):
-    heap = [list(item) for item in heap]  # Converte cada tupla em lista
-    for i in range(len(heap)):
-        heap[i][1] = 0  # Agora você pode modificar o segundo elemento
-    heapZerada = [tuple(item) for item in heap]
-    return heapZerada, 0
+def calculoBeta(m,r,somatorio): # arrumar
+    return (1/(m*r))*somatorio
+def imprimir_estado(fase, somatorio, paginas, r, m): # arrumar
+    beta = calculoBeta(m,r,somatorio)
+    print(f"fase {fase} {beta}")
+    for i, pagina in enumerate(paginas):
+        if any(pagina):
+            conteudo_formatado = "".join(f"{{{' '.join(map(str, lista))}}}" for lista in pagina if lista)
+            print(f"{i + 1}: {conteudo_formatado}")
 
+def zera_peso_heap(heap):
+    heap = [list(item) for item in heap]
+    for item in heap:
+        item[1] = 0
+    return [tuple(item) for item in heap], 0
 
 def adicionar_com_peso(heap, valor, peso):
-    # Inserindo como uma tupla (valor, peso)
     heapq.heappush(heap, (valor, peso))
 
 def remove_menor_heap(heap):
     menor, menor_peso = extrair_menor_com_peso_0(heap)
-    # IMPLEMENTAR
-    for i in range(len(heap)):
-        if (heap[i][0] == menor and heap[i][1] == menor_peso):
-            heap.remove(heap[i])
-            break
-        #heapq.heappop(heap)
+    heap = [item for item in heap if not (item[0] == menor and item[1] == menor_peso)]
+    return heap
 
-def extrair_menor_com_peso_0(heap): # ajudem a melhorar esse método pessoal #
-    # Itera sobre a heap para encontrar o menor elemento com peso 0
+def extrair_menor_com_peso_0(heap):
+    menor_valor, menor_peso = float('inf'), None
+    for valor, peso in heap[:3]:
+        if peso == 0 and valor < menor_valor:
+            menor_valor, menor_peso = valor, peso
+    return (menor_valor, menor_peso) if menor_peso is not None else (None, None)
 
-    for i in range(len(heap)):
-        valor, peso = heap[i]
-        if peso == 0:
-            if i == 0:
-                valor01 = valor, peso
-            elif i == 1:
-                valor02 = valor, peso
-            elif i == 2:
-                valor03 = valor, peso
-        else:
-            if i == 0:
-                valor01 = 9999, peso
-            elif i == 1:
-                valor02 = 9999, peso
-            elif i == 2:
-                valor03 = 9999, peso
-
-    menor, menor_peso = min(valor01, valor02, valor03)
-    return menor, menor_peso
-
-
-def multicaminhos(m, k, r, n, entradas):
+def geraSequenciasOrdenadas(m, entradas):
     heap = []
     sequencias = []
     sequencia_atual = []
@@ -53,80 +39,162 @@ def multicaminhos(m, k, r, n, entradas):
     qnt_numeros_com_peso = 0
 
     for numero_atual in entradas:
-        # Caso o heap tenha espaço disponível, inserir diretamente
-        if len(heap) < m:  # Tamanho máximo da heap
+        if len(heap) < m:
             adicionar_com_peso(heap, numero_atual, 0)
         else:
-
-            if (qnt_numeros_com_peso == 3):
+            if qnt_numeros_com_peso == 3:
                 heap, qnt_numeros_com_peso = zera_peso_heap(heap)
 
             menor, menor_peso = extrair_menor_com_peso_0(heap)
 
-            # Se o número atual é >= ao menor número da heap
             if numero_atual >= ultimo_elemento:
-
-                # Adicionar o menor na sequência atual
                 sequencia_atual.append(menor)
                 ultimo_elemento = menor
+                heap = remove_menor_heap(heap)
 
-                # Remover o menor da heap
-                remove_menor_heap(heap)
-
-
-                # Adicionar o número atual à heap
-                if (numero_atual >= ultimo_elemento):
+                if numero_atual >= ultimo_elemento:
                     adicionar_com_peso(heap, numero_atual, 0)
-                    heapq.heapify(heap)
                 else:
                     adicionar_com_peso(heap, numero_atual, 1)
                     qnt_numeros_com_peso += 1
-                    heapq.heapify(heap)
             else:
-                # Se o menor número da heap for menor que o último da sequência
-                # e o menor número está com peso 0, ele recebe peso 1
                 if menor_peso == 0:
-                    # Adicionar o menor na sequência atual
                     sequencia_atual.append(menor)
                     ultimo_elemento = menor
-
-                    # Remover o menor da heap
-                    remove_menor_heap(heap)
-
+                    heap = remove_menor_heap(heap)
                     adicionar_com_peso(heap, numero_atual, 1)
                     qnt_numeros_com_peso += 1
                 else:
                     sequencia_atual.append(menor)
                     ultimo_elemento = menor
 
-            # Adiciona o menor número na sequência atual se a sequência ainda não atingiu o tamanho máximo
-            if len(sequencia_atual) >= (n // m):
+            if len(sequencia_atual) >= (len(entradas) // m):
                 sequencias.append(sequencia_atual)
                 sequencia_atual = []
                 heap, qnt_numeros_com_peso = zera_peso_heap(heap)
                 ultimo_elemento = 0
 
-            # Se a heap ficou vazia, recomeça com os elementos restantes
             if len(heap) == 0:
                 break
 
-    # Adicionar a última sequência se houver elementos
     if sequencia_atual:
         sequencias.append(sequencia_atual)
+
+    print("Sequencias iniciais geradas:")
     print(sequencias)
+    print("_____________________________")
     return sequencias
 
+def criar_listas(k):
+    return [[] for _ in range(k)]
+
+def intercala_pagina(k, sequenciasOrdenadas):
+    paginasPorFase = k // 2
+    paginas = criar_listas(k)
+    pagina_atual = 0
+
+    for sequencia in sequenciasOrdenadas:
+        paginas[pagina_atual].append(sequencia)
+        pagina_atual = (pagina_atual + 1) % paginasPorFase
+
+    return paginas
+
+def intercala_pagina_lado(k, sequenciasOrdenadas, esquerda, paginas):
+    paginasPorFase = k // 2
+    pagina_atual = 0 if esquerda == 1 else (k // 2)
+    primeira_iteracao = True
+
+    for sequencia in sequenciasOrdenadas:
+        if primeira_iteracao and paginas[pagina_atual]:
+            pagina_atual = (pagina_atual + 1) % k
+            paginas[pagina_atual].append(sequencia)
+            primeira_iteracao = False
+        else:
+            paginas[pagina_atual].append(sequencia)
+            pagina_atual = (pagina_atual + 1) % k
+
+    return paginas
+
+def coleta_listas_direita(k, paginas):
+    metade = k // 2
+    listas_direita = []
+    while any(paginas[i] for i in range(metade, k)):
+        for i in range(metade, k):
+            if paginas[i]:
+                lista_temp = paginas[i].pop(0)
+                listas_direita.append(lista_temp)
+    return listas_direita
+
+def coleta_listas_esqueda(k, paginas):
+    metade = k // 2
+    listas_esqueda = []
+    while any(paginas[i] for i in range(metade)):
+        for i in range(metade):
+            if paginas[i]:
+                lista_temp = paginas[i].pop(0)
+                listas_esqueda.append(lista_temp)
+    return listas_esqueda
+
+def distribui_direita_esqueda(k, paginas):
+    listas_direita = coleta_listas_direita(k, paginas)
+    paginas = intercala_pagina_lado(k, listas_direita, 1, paginas)
+    return paginas
+
+def distribui_esqueda_direita(k, paginas):
+    listas_esqueda = coleta_listas_esqueda(k, paginas)
+    paginas = intercala_pagina_lado(k, listas_esqueda, 0, paginas)
+    return paginas
+
+def ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m):
+    k = len(paginas)
+    # arrumar
+    somatorio = sum(len(pagina) for pagina in paginas if pagina)
+    if fase == 0:
+        imprimir_estado(fase, contador_escrita, paginas, r, m)
+
+    if len([p for p in paginas if p]) > 1:
+        lista_temp = []
+        for pagina in paginas:
+            if pagina and isinstance(pagina[0], list):
+                lista_temp.extend(pagina.pop(0))
+
+        lista_temp.sort()
+        contador_escrita += len(lista_temp)
+        pagina_index = k // 2
+
+        if fase == 0:
+            paginas[pagina_index] = [lista_temp]
+            paginas = distribui_esqueda_direita(k, paginas)
+        elif fase % 2 == 0:
+            paginas[pagina_index].insert(0, lista_temp)
+            paginas = distribui_direita_esqueda(k, paginas)
+        else:
+            paginas[pagina_index] = [lista_temp]
+            paginas = distribui_esqueda_direita(k, paginas)
+
+        r = len(paginas)
+        fase += 1
+        imprimir_estado(fase, somatorio, paginas, r, m)
+        return ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
+
+    return paginas, contador_escrita
+
+def multicaminhos(m, k, r, n, numeros):
+    fase = 0
+    contador_escrita = 0
+    sequencias = geraSequenciasOrdenadas(m, numeros)
+    paginas = intercala_pagina(k, sequencias)
+    ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
+
 def polifasica():
-    # Geração da sequência de Fibonacci
     fib = [1, 1]
     while sum(fib) < n:
         fib.append(fib[-1] + fib[-2])
 
-    # Simulação da distribuição de dados em fitas
-    sublists = [[] for _ in range(3)]  # Criando três sublistas (simulando fitas)
+    sublists = [[] for _ in range(3)]
     index = 0
     temp_list = sorted(numeros)
-    for f in fib[::-1]:  # Inverte a sequência de Fibonacci para distribuição
+    for f in fib[::-1]:
         sublists[index % 3].extend(temp_list[:f])
         temp_list = temp_list[f:]
         index += 1
@@ -135,24 +203,21 @@ def polifasica():
     for i, sublist in enumerate(sublists):
         print(f"Fita {i + 1}: {sublist}")
 
-    # Inicia o processo de fusão polifásica
     sorted_list = []
     while any(len(sublist) > 0 for sublist in sublists[:-1]):
         merged_list = []
-        for sublist in sublists[:-1]:  # Exceto a última fita
+        for sublist in sublists[:-1]:
             if sublist:
                 merged_list.append(sublist.pop(0))
 
         if merged_list:
-            sorted_list.append(min(merged_list))  # Adiciona o menor elemento à lista ordenada
+            sorted_list.append(min(merged_list))
             merged_list.remove(min(merged_list))
 
-        # Redistribui de volta os elementos restantes para as fitas iniciais
         for sublist in sublists[:-1]:
             if merged_list:
                 sublist.append(merged_list.pop(0))
 
-    # Finaliza o processamento dos elementos restantes
     remaining_elements = []
     for sublist in sublists[:-1]:
         remaining_elements.extend(sublist)
@@ -162,7 +227,6 @@ def polifasica():
 
     print("Lista ordenada pelo método polifásico:\n", sorted_list)
     return sorted_list
-
 
 def cascata():
     def merge(left, right):
@@ -183,16 +247,13 @@ def cascata():
         right_half = merge_sort(arr[mid:])
         return merge(left_half, right_half)
 
-    # Dividindo a lista inicial em sublistas menores
     sublists = [numeros[i:i + r] for i in range(0, len(numeros), r)]
     print("Divisão inicial das sublistas:")
     for i, sublist in enumerate(sublists):
         print(f"Sublista {i + 1}: {sublist}")
 
-    # Ordena cada sublista usando Merge Sort
     sorted_sublists = [merge_sort(sublist) for sublist in sublists]
 
-    # Fusão escalonada das sublistas
     while len(sorted_sublists) > 1:
         merged_sublists = []
         for i in range(0, len(sorted_sublists), 2):
@@ -205,42 +266,18 @@ def cascata():
     sorted_list = sorted_sublists[0] if sorted_sublists else []
     print("Lista ordenada pelo método cascata:\n", sorted_list)
     return sorted_list
-"""
-N = input() # Pede uma entrada ao usuário
-while N not in ['B', 'P', 'C']:
-    N = input("Entrada inválida. Digite B, P ou C: ") # Essa condição garante que apenas sejam aceitas as respostas B, P e C fornecidas pelos usuários
-entrada = input()
-valores = entrada.split()
-while len(valores) != 4:
-    print("Digite quatro valores separados por espaço.")
-    entrada = input()
-    valores = entrada.split()
-m, k, r, n = map(int, valores) # Converte todas as variáveis para inteiros
-minimo = 1
-maximo = 100
-numeros = [random.randint(minimo, maximo) for i in range(n)] # Gera e armazena n números aleatórios em uma lista
-print("Números aleatórios gerados:\n", numeros) # Imprime a lista de números aleatórios
-N = "B"
-m = 3
-k = 4
-r = 3
-n = 17
-# 7 1 5 6 3 8 2 10 4 9 1 3 7 4 1 2 3
-"""
 
+# Código principal
 with open("entrada.txt", "r") as file:
-    # Lendo a primeira linha e atribuindo o valor à variável N
     N = file.readline().strip()
-
-    # Lendo a segunda linha e atribuindo os valores às variáveis m, k, r, n
     m, k, r, n = map(int, file.readline().split())
-
-    # Lendo a terceira linha e convertendo em uma lista de inteiros
     numeros = list(map(int, file.readline().split()))
 
-if N=="B":
-    multicaminhos(m,k,r,n,numeros)
-elif N=='P':
+if N == "B":
+    multicaminhos(m, k, r, n, numeros)
+elif N == 'P':
     polifasica()
-elif N=='C':
+elif N == 'C':
     cascata()
+else:
+    print("Entrada inválida.")
