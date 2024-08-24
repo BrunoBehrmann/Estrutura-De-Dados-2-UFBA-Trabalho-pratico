@@ -1,197 +1,200 @@
 import heapq
 
-def calculoBeta(m,r,somatorio): # arrumar
-    return (1/(m*r))*somatorio
-def imprimir_estado(fase, somatorio, paginas, r, m): # arrumar
-    beta = calculoBeta(m,r,somatorio)
+def calculoBeta(m, paginas):
+    r = sum(len(pagina) for pagina in paginas if pagina)
+    # Calcular a soma dos tamanhos das sublistas
+    total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+    Beta = (1 / (m * r)) * total_registros
+    # Arredondar Beta para até dois decimais
+    Beta = round(Beta, 2)
+    return Beta
+
+def imprimir_estado(fase, paginas, m):
+    beta = calculoBeta(m, paginas)
     print(f"fase {fase} {beta}")
     for i, pagina in enumerate(paginas):
         if any(pagina):
             conteudo_formatado = "".join(f"{{{' '.join(map(str, lista))}}}" for lista in pagina if lista)
             print(f"{i + 1}: {conteudo_formatado}")
 
-def zera_peso_heap(heap):
-    heap = [list(item) for item in heap]
-    for item in heap:
-        item[1] = 0
-    return [tuple(item) for item in heap], 0
+def multicaminhos(m, k, r, n, numeros):
+    def extrair_menor_com_peso_0(heap, m):
+        menor_valor, menor_peso = float('inf'), None
+        for valor, peso in heap[:m]:
+            if peso == 0 and valor < menor_valor:
+                menor_valor, menor_peso = valor, peso
+        return (menor_valor, menor_peso) if menor_peso is not None else (None, None)
 
-def adicionar_com_peso(heap, valor, peso):
-    heapq.heappush(heap, (valor, peso))
+    def adicionar_com_peso(heap, valor, peso):
+        heapq.heappush(heap, (valor, peso))
 
-def remove_menor_heap(heap):
-    menor, menor_peso = extrair_menor_com_peso_0(heap)
-    heap = [item for item in heap if not (item[0] == menor and item[1] == menor_peso)]
-    return heap
+    def zera_peso_heap(heap):
+        heap = [list(item) for item in heap]
+        for item in heap:
+            item[1] = 0
+        return [tuple(item) for item in heap], 0
 
-def extrair_menor_com_peso_0(heap):
-    menor_valor, menor_peso = float('inf'), None
-    for valor, peso in heap[:3]:
-        if peso == 0 and valor < menor_valor:
-            menor_valor, menor_peso = valor, peso
-    return (menor_valor, menor_peso) if menor_peso is not None else (None, None)
+    def geraSequenciasOrdenadas(m, entradas):
+        heap = []
+        sequencias = []
+        sequencia_atual = []
+        ultimo_elemento = 0
+        qnt_numeros_com_peso = 0
 
-def geraSequenciasOrdenadas(m, entradas):
-    heap = []
-    sequencias = []
-    sequencia_atual = []
-    ultimo_elemento = 0
-    qnt_numeros_com_peso = 0
+        for numero_atual in entradas:
+            if len(heap) < m:
+                adicionar_com_peso(heap, numero_atual, 0)
+            else:
+                if qnt_numeros_com_peso == 3:
+                    heap, qnt_numeros_com_peso = zera_peso_heap(heap)
 
-    for numero_atual in entradas:
-        if len(heap) < m:
-            adicionar_com_peso(heap, numero_atual, 0)
-        else:
-            if qnt_numeros_com_peso == 3:
-                heap, qnt_numeros_com_peso = zera_peso_heap(heap)
-
-            menor, menor_peso = extrair_menor_com_peso_0(heap)
-
-            if numero_atual >= ultimo_elemento:
-                sequencia_atual.append(menor)
-                ultimo_elemento = menor
-                heap = remove_menor_heap(heap)
+                menor, menor_peso = extrair_menor_com_peso_0(heap, m)
 
                 if numero_atual >= ultimo_elemento:
-                    adicionar_com_peso(heap, numero_atual, 0)
+                    sequencia_atual.append(menor)
+                    ultimo_elemento = menor
+                    heap = [item for item in heap if not (item[0] == menor and item[1] == menor_peso)]
+
+                    if numero_atual >= ultimo_elemento:
+                        adicionar_com_peso(heap, numero_atual, 0)
+                    else:
+                        adicionar_com_peso(heap, numero_atual, 1)
+                        qnt_numeros_com_peso += 1
                 else:
-                    adicionar_com_peso(heap, numero_atual, 1)
-                    qnt_numeros_com_peso += 1
+                    if menor_peso == 0:
+                        sequencia_atual.append(menor)
+                        ultimo_elemento = menor
+                        heap = [item for item in heap if not (item[0] == menor and item[1] == menor_peso)]
+                        adicionar_com_peso(heap, numero_atual, 1)
+                        qnt_numeros_com_peso += 1
+                    else:
+                        sequencia_atual.append(menor)
+                        ultimo_elemento = menor
+
+                if len(sequencia_atual) >= (len(entradas) // m):
+                    sequencias.append(sequencia_atual)
+                    sequencia_atual = []
+                    heap, qnt_numeros_com_peso = zera_peso_heap(heap)
+                    ultimo_elemento = 0
+
+                if len(heap) == 0:
+                    break
+
+        if sequencia_atual:
+            sequencias.append(sequencia_atual)
+        return sequencias
+
+    def criar_listas(k):
+        return [[] for _ in range(k)]
+
+    def intercala_pagina(k, sequenciasOrdenadas):
+        paginasPorFase = k // 2
+        paginas = criar_listas(k)
+        pagina_atual = 0
+
+        for sequencia in sequenciasOrdenadas:
+            paginas[pagina_atual].append(sequencia)
+            pagina_atual = (pagina_atual + 1) % paginasPorFase
+
+        return paginas
+
+    def intercala_pagina_lado(k, sequenciasOrdenadas, esquerda, paginas):
+        paginasPorFase = k // 2
+        pagina_atual = 0 if esquerda == 1 else (k // 2)
+        primeira_iteracao = True
+
+        for sequencia in sequenciasOrdenadas:
+            if primeira_iteracao and paginas[pagina_atual]:
+                pagina_atual = (pagina_atual + 1) % k
+                paginas[pagina_atual].append(sequencia)
+                primeira_iteracao = False
             else:
-                if menor_peso == 0:
-                    sequencia_atual.append(menor)
-                    ultimo_elemento = menor
-                    heap = remove_menor_heap(heap)
-                    adicionar_com_peso(heap, numero_atual, 1)
-                    qnt_numeros_com_peso += 1
-                else:
-                    sequencia_atual.append(menor)
-                    ultimo_elemento = menor
+                paginas[pagina_atual].append(sequencia)
+                pagina_atual = (pagina_atual + 1) % k
 
-            if len(sequencia_atual) >= (len(entradas) // m):
-                sequencias.append(sequencia_atual)
-                sequencia_atual = []
-                heap, qnt_numeros_com_peso = zera_peso_heap(heap)
-                ultimo_elemento = 0
+        return paginas
 
-            if len(heap) == 0:
-                break
+    def coleta_listas_direita(k, paginas):
+        metade = k // 2
+        listas_direita = []
+        while any(paginas[i] for i in range(metade, k)):
+            for i in range(metade, k):
+                if paginas[i]:
+                    lista_temp = paginas[i].pop(0)
+                    listas_direita.append(lista_temp)
+        return listas_direita
 
-    if sequencia_atual:
-        sequencias.append(sequencia_atual)
+    def coleta_listas_esqueda(k, paginas):
+        metade = k // 2
+        listas_esqueda = []
+        while any(paginas[i] for i in range(metade)):
+            for i in range(metade):
+                if paginas[i]:
+                    lista_temp = paginas[i].pop(0)
+                    listas_esqueda.append(lista_temp)
+        return listas_esqueda
 
-    print("Sequencias iniciais geradas:")
-    print(sequencias)
-    print("_____________________________")
-    return sequencias
+    def distribui_direita_esqueda(k, paginas):
+        listas_direita = coleta_listas_direita(k, paginas)
+        paginas = intercala_pagina_lado(k, listas_direita, 1, paginas)
+        return paginas
 
-def criar_listas(k):
-    return [[] for _ in range(k)]
+    def distribui_esqueda_direita(k, paginas):
+        listas_esqueda = coleta_listas_esqueda(k, paginas)
+        paginas = intercala_pagina_lado(k, listas_esqueda, 0, paginas)
+        return paginas
 
-def intercala_pagina(k, sequenciasOrdenadas):
-    paginasPorFase = k // 2
-    paginas = criar_listas(k)
-    pagina_atual = 0
-
-    for sequencia in sequenciasOrdenadas:
-        paginas[pagina_atual].append(sequencia)
-        pagina_atual = (pagina_atual + 1) % paginasPorFase
-
-    return paginas
-
-def intercala_pagina_lado(k, sequenciasOrdenadas, esquerda, paginas):
-    paginasPorFase = k // 2
-    pagina_atual = 0 if esquerda == 1 else (k // 2)
-    primeira_iteracao = True
-
-    for sequencia in sequenciasOrdenadas:
-        if primeira_iteracao and paginas[pagina_atual]:
-            pagina_atual = (pagina_atual + 1) % k
-            paginas[pagina_atual].append(sequencia)
-            primeira_iteracao = False
-        else:
-            paginas[pagina_atual].append(sequencia)
-            pagina_atual = (pagina_atual + 1) % k
-
-    return paginas
-
-def coleta_listas_direita(k, paginas):
-    metade = k // 2
-    listas_direita = []
-    while any(paginas[i] for i in range(metade, k)):
-        for i in range(metade, k):
-            if paginas[i]:
-                lista_temp = paginas[i].pop(0)
-                listas_direita.append(lista_temp)
-    return listas_direita
-
-def coleta_listas_esqueda(k, paginas):
-    metade = k // 2
-    listas_esqueda = []
-    while any(paginas[i] for i in range(metade)):
-        for i in range(metade):
-            if paginas[i]:
-                lista_temp = paginas[i].pop(0)
-                listas_esqueda.append(lista_temp)
-    return listas_esqueda
-
-def distribui_direita_esqueda(k, paginas):
-    listas_direita = coleta_listas_direita(k, paginas)
-    paginas = intercala_pagina_lado(k, listas_direita, 1, paginas)
-    return paginas
-
-def distribui_esqueda_direita(k, paginas):
-    listas_esqueda = coleta_listas_esqueda(k, paginas)
-    paginas = intercala_pagina_lado(k, listas_esqueda, 0, paginas)
-    return paginas
-
-def ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m):
-    k = len(paginas)
-    # arrumar
-    somatorio = sum(len(pagina) for pagina in paginas if pagina)
-    if fase == 0:
-        imprimir_estado(fase, contador_escrita, paginas, r, m)
-
-    if len([p for p in paginas if p]) > 1:
-        lista_temp = []
-        for pagina in paginas:
-            if pagina and isinstance(pagina[0], list):
-                lista_temp.extend(pagina.pop(0))
-
-        lista_temp.sort()
-        contador_escrita += len(lista_temp)
-        pagina_index = k // 2
+    def ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m):
+        k = len(paginas)
 
         if fase == 0:
-            paginas[pagina_index] = [lista_temp]
-            paginas = distribui_esqueda_direita(k, paginas)
-        elif fase % 2 == 0:
-            paginas[pagina_index].insert(0, lista_temp)
-            paginas = distribui_direita_esqueda(k, paginas)
+            imprimir_estado(fase, paginas, m)
+
+        if len([p for p in paginas if p]) > 1:
+            lista_temp = []
+            for pagina in paginas:
+                if pagina and isinstance(pagina[0], list):
+                    lista_temp.extend(pagina.pop(0))
+
+            lista_temp.sort()
+            contador_escrita += len(lista_temp)
+            contador_escrita += sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+            pagina_index = k // 2
+
+            if fase == 0:
+                paginas[pagina_index] = [lista_temp]
+                paginas = distribui_esqueda_direita(k, paginas)
+            elif fase % 2 == 0:
+                paginas[pagina_index].insert(0, lista_temp)
+                paginas = distribui_direita_esqueda(k, paginas)
+            else:
+                paginas[pagina_index] = [lista_temp]
+                paginas = distribui_esqueda_direita(k, paginas)
+
+            r = len(paginas)
+            fase += 1
+            imprimir_estado(fase, paginas, m)
+            return ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
         else:
-            paginas[pagina_index] = [lista_temp]
-            paginas = distribui_esqueda_direita(k, paginas)
+            total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+            alfa = contador_escrita / total_registros
+            alfa = round(alfa, 2)
+            print(f"final {alfa}")
 
-        r = len(paginas)
-        fase += 1
-        imprimir_estado(fase, somatorio, paginas, r, m)
-        return ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
+        return paginas, contador_escrita
 
-    return paginas, contador_escrita
-
-def multicaminhos(m, k, r, n, numeros):
     fase = 0
     contador_escrita = 0
     sequencias = geraSequenciasOrdenadas(m, numeros)
     paginas = intercala_pagina(k, sequencias)
     ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
 
-def polifasica():
+def polifasica(m, k, r, n, numeros):
     fib = [1, 1]
     while sum(fib) < n:
         fib.append(fib[-1] + fib[-2])
 
-    sublists = [[] for _ in range(3)]
+    sublists = [[] for _ in range(k)]
     index = 0
     temp_list = sorted(numeros)
     for f in fib[::-1]:
@@ -276,7 +279,7 @@ with open("entrada.txt", "r") as file:
 if N == "B":
     multicaminhos(m, k, r, n, numeros)
 elif N == 'P':
-    polifasica()
+    polifasica(m, k, r, n, numeros)
 elif N == 'C':
     cascata()
 else:
