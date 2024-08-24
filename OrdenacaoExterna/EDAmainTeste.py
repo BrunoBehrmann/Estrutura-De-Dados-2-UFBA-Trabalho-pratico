@@ -84,12 +84,9 @@ def multicaminhos(m, k, r, n, numeros):
             sequencias.append(sequencia_atual)
         return sequencias
 
-    def criar_listas(k):
-        return [[] for _ in range(k)]
-
     def intercala_pagina(k, sequenciasOrdenadas):
         paginasPorFase = k // 2
-        paginas = criar_listas(k)
+        paginas = [[] for _ in range(k)]
         pagina_atual = 0
 
         for sequencia in sequenciasOrdenadas:
@@ -189,47 +186,110 @@ def multicaminhos(m, k, r, n, numeros):
     paginas = intercala_pagina(k, sequencias)
     ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
 
+""" INTERCALAÇÃO POLIFÁSICA """
+def gerar_array(n, k):
+    # Passo base
+    array_atual = [0] * k
+    array_atual[-1] = 1  # O último elemento é 1
+
+    for depth in range(1, n + 1):  # +1 para garantir que possamos verificar até o último passo
+        novo_array = [0] * k
+
+        # Índices do maior e menor valor do array anterior
+        maior_valor = max(array_atual)
+        index_maior_valor = array_atual.index(maior_valor)
+        menor_valor = min(array_atual)
+        index_menor_valor = array_atual.index(menor_valor)
+
+        # Passo 1: Coloca o maior valor no índice do menor valor do array anterior
+        novo_array[index_menor_valor] = maior_valor
+
+        # Passo 2: Coloca 0 no índice do maior valor do array anterior
+        novo_array[index_maior_valor] = 0
+
+        # Passo 3: Para os demais índices, soma o maior valor com o valor do array anterior
+        for i in range(k):
+            if i not in (index_maior_valor, index_menor_valor):
+                novo_array[i] = maior_valor + array_atual[i]
+
+        array_atual = novo_array
+
+        # Verifica se a soma do array é >= n
+        if sum(array_atual) >= n:
+            return array_atual
+
+    return array_atual
+
+def gera_fase_inicial(k, n, numeros):
+    # Gera o array inicial de fases
+    fase_inicial = gerar_array(n, k)
+
+    # Cria a estrutura de páginas como uma lista de listas
+    paginas = [[] for _ in range(k)]
+
+    # Preenche as páginas de acordo com fase_inicial
+    posicao_atual = 0
+    for i, tamanho in enumerate(fase_inicial):
+        pagina = []
+        for _ in range(tamanho):
+            if posicao_atual < len(numeros):
+                pagina.append([numeros[posicao_atual]])
+                posicao_atual += 1
+            else:
+                pagina.append([float('inf')])  # Preenche com float('inf') se não houver mais números
+        paginas[i] = pagina
+
+    return paginas
+def imprime_paginas_final(paginas, fase):
+    print(f"Fase {fase}")
+    for i, pagina in enumerate(paginas):
+        elementos = ' '.join(
+            f"{{{' '.join(str(elem) for elem in sublista if elem != float('inf'))}}}"
+            for sublista in pagina if any(elem != float('inf') for elem in sublista)
+        )
+        print(f"{i + 1}: {elementos}")
+
+def imprime_paginas(paginas, fase):
+    print(f"Fase {fase}")
+    for i, pagina in enumerate(paginas):
+        elementos = ' '.join(f"{{{' '.join(map(str, sublista))}}}" for sublista in pagina)
+        print(f"{i + 1}: {elementos}")
+
 def polifasica(m, k, r, n, numeros):
-    fib = [1, 1]
-    while sum(fib) < n:
-        fib.append(fib[-1] + fib[-2])
+    paginas = gera_fase_inicial(k, n, numeros)
 
-    sublists = [[] for _ in range(k)]
-    index = 0
-    temp_list = sorted(numeros)
-    for f in fib[::-1]:
-        sublists[index % 3].extend(temp_list[:f])
-        temp_list = temp_list[f:]
-        index += 1
+    fase = 0
+    while True:
+        imprime_paginas(paginas, fase)
 
-    print("Distribuição inicial em fitas:")
-    for i, sublist in enumerate(sublists):
-        print(f"Fita {i + 1}: {sublist}")
+        # Encontra a menor página não vazia e o índice da página vazia
+        tamanhos = [len(pagina) for pagina in paginas]
+        menor_pagina = min([tamanho for tamanho in tamanhos if tamanho > 0])
+        index_pagina_vazia = tamanhos.index(0)
 
-    sorted_list = []
-    while any(len(sublist) > 0 for sublist in sublists[:-1]):
-        merged_list = []
-        for sublist in sublists[:-1]:
-            if sublist:
-                merged_list.append(sublist.pop(0))
+        if menor_pagina == 0:
+            break
 
-        if merged_list:
-            sorted_list.append(min(merged_list))
-            merged_list.remove(min(merged_list))
+        # Cria uma nova lista ordenada na página vazia
+        nova_lista = []
+        for _ in range(menor_pagina):
+            elementos_para_remover = []
+            for i in range(k):
+                if i != index_pagina_vazia and paginas[i]:
+                    elementos_para_remover.extend(paginas[i].pop(0))
 
-        for sublist in sublists[:-1]:
-            if merged_list:
-                sublist.append(merged_list.pop(0))
+            nova_lista.append(sorted(elementos_para_remover))
 
-    remaining_elements = []
-    for sublist in sublists[:-1]:
-        remaining_elements.extend(sublist)
-    remaining_elements.extend(sublists[-1])
+        paginas[index_pagina_vazia] = nova_lista
 
-    sorted_list.extend(sorted(remaining_elements))
+        fase += 1
 
-    print("Lista ordenada pelo método polifásico:\n", sorted_list)
-    return sorted_list
+        # Verifica se todas as páginas exceto uma estão vazias
+        paginas_nao_vazias = [pagina for pagina in paginas if len(pagina) > 0]
+        if len(paginas_nao_vazias) == 1:
+            break
+
+    imprime_paginas_final(paginas, fase)
 
 def cascata():
     def merge(left, right):
