@@ -1,5 +1,8 @@
 import heapq
 
+valores_alfa = []
+valores_r = []
+
 def calculoBeta(m, paginas):
     r = sum(len(pagina) for pagina in paginas if pagina)
     # Calcular a soma dos tamanhos das sublistas
@@ -9,13 +12,20 @@ def calculoBeta(m, paginas):
     Beta = round(Beta, 2)
     return Beta
 
-def imprimir_estado(fase, paginas, m):
+def imprimir_estado(fase, paginas, m, contador_escrita):
+    total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+    alfa = contador_escrita / total_registros
+    alfa = round(alfa, 2)
+    valores_alfa.append(alfa)
+    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
+
     beta = calculoBeta(m, paginas)
     print(f"fase {fase} {beta}")
     for i, pagina in enumerate(paginas):
         if any(pagina):
             conteudo_formatado = "".join(f"{{{' '.join(map(str, lista))}}}" for lista in pagina if lista)
             print(f"{i + 1}: {conteudo_formatado}")
+
 
 def multicaminhos(m, k, r, n, numeros):
     def extrair_menor_com_peso_0(heap, m):
@@ -45,7 +55,7 @@ def multicaminhos(m, k, r, n, numeros):
             if len(heap) < m:
                 adicionar_com_peso(heap, numero_atual, 0)
             else:
-                if qnt_numeros_com_peso == 3:
+                if qnt_numeros_com_peso == m:
                     heap, qnt_numeros_com_peso = zera_peso_heap(heap)
 
                 menor, menor_peso = extrair_menor_com_peso_0(heap, m)
@@ -61,13 +71,16 @@ def multicaminhos(m, k, r, n, numeros):
                         adicionar_com_peso(heap, numero_atual, 1)
                         qnt_numeros_com_peso += 1
                 else:
-                    if menor_peso == 0:
+                    if menor_peso == 0 and menor > ultimo_elemento:
                         sequencia_atual.append(menor)
                         ultimo_elemento = menor
                         heap = [item for item in heap if not (item[0] == menor and item[1] == menor_peso)]
                         adicionar_com_peso(heap, numero_atual, 1)
                         qnt_numeros_com_peso += 1
-                    else:
+                    elif menor_peso == 0 and menor < ultimo_elemento:
+                        sequencias.append(sequencia_atual)
+                        sequencia_atual = []
+                        ultimo_elemento = 0
                         sequencia_atual.append(menor)
                         ultimo_elemento = menor
 
@@ -100,14 +113,58 @@ def multicaminhos(m, k, r, n, numeros):
         pagina_atual = 0 if esquerda == 1 else (k // 2)
         primeira_iteracao = True
 
-        for sequencia in sequenciasOrdenadas:
-            if primeira_iteracao and paginas[pagina_atual]:
-                pagina_atual = (pagina_atual + 1) % k
-                paginas[pagina_atual].append(sequencia)
-                primeira_iteracao = False
-            else:
-                paginas[pagina_atual].append(sequencia)
-                pagina_atual = (pagina_atual + 1) % k
+        if esquerda:
+            for sequencia in sequenciasOrdenadas:
+
+                # se ja tiver sublista no primeiro index
+                if primeira_iteracao and paginas[pagina_atual]:
+                    if pagina_atual == (k // 2) - 1:
+                        # se ja existir, volta
+                        pagina_atual = 0
+                        paginas[pagina_atual].append(sequencia)
+
+                    else: # se nao for o ultimo da esquerda
+                        pagina_atual = (pagina_atual + 1)
+                        paginas[pagina_atual].append(sequencia)
+
+                    primeira_iteracao = False
+
+                else: # resto das interacoes
+                    # se estiver no ultimo index da esquerda
+                    if pagina_atual == (k // 2) - 1:
+                        paginas[pagina_atual].append(sequencia)
+                        pagina_atual = 0
+                    else:
+                        paginas[pagina_atual].append(sequencia)
+                        pagina_atual = (pagina_atual + 1)
+
+
+
+        else: #direita
+            for sequencia in sequenciasOrdenadas:
+
+                # se ja tiver sublista no primeiro index
+                if primeira_iteracao and paginas[pagina_atual]:
+                    if pagina_atual == k - 1:
+                        # se ja existir, volta
+                        pagina_atual = k // 2
+                        paginas[pagina_atual].append(sequencia)
+
+                    else:  # se nao for o ultimo da direita
+                        pagina_atual = (pagina_atual + 1)
+                        paginas[pagina_atual].append(sequencia)
+
+                    primeira_iteracao = False
+
+                else:  # resto das interacoes
+                    # se estiver no ultimo index da direita
+                    if pagina_atual == k - 1:
+                        paginas[pagina_atual].append(sequencia)
+                        pagina_atual = k // 2
+
+                    else: # se nao for o ultimo da direita
+                        paginas[pagina_atual].append(sequencia)
+                        pagina_atual = (pagina_atual + 1)
 
         return paginas
 
@@ -145,7 +202,8 @@ def multicaminhos(m, k, r, n, numeros):
         k = len(paginas)
 
         if fase == 0:
-            imprimir_estado(fase, paginas, m)
+            imprimir_estado(fase, paginas, m, contador_escrita)
+
 
         if len([p for p in paginas if p]) > 1:
             lista_temp = []
@@ -158,19 +216,16 @@ def multicaminhos(m, k, r, n, numeros):
             contador_escrita += sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
             pagina_index = k // 2
 
-            if fase == 0:
+            if fase == 0 or fase % 2 == 0:
                 paginas[pagina_index] = [lista_temp]
                 paginas = distribui_esqueda_direita(k, paginas)
-            elif fase % 2 == 0:
+            else:
                 paginas[pagina_index].insert(0, lista_temp)
                 paginas = distribui_direita_esqueda(k, paginas)
-            else:
-                paginas[pagina_index] = [lista_temp]
-                paginas = distribui_esqueda_direita(k, paginas)
 
             r = len(paginas)
             fase += 1
-            imprimir_estado(fase, paginas, m)
+            imprimir_estado(fase, paginas, m, contador_escrita)
             return ordenacao_multicaminhos(paginas, contador_escrita, fase, r, m)
         else:
             total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
@@ -240,8 +295,17 @@ def gera_fase_inicial(k, n, numeros):
         paginas[i] = pagina
 
     return paginas
-def imprime_paginas_final(paginas, fase):
-    print(f"Fase {fase}")
+def imprime_paginas_final(paginas, fase, contador_escrita):
+
+    # grafico
+    total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+    alfa = contador_escrita / total_registros
+    alfa = round(alfa, 2)
+    valores_alfa.append(alfa)
+    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
+
+    beta = calculoBeta(m, paginas)
+    print(f"Fase {fase} {beta}")
     for i, pagina in enumerate(paginas):
         elementos = ' '.join(
             f"{{{' '.join(str(elem) for elem in sublista if elem != float('inf'))}}}"
@@ -249,18 +313,27 @@ def imprime_paginas_final(paginas, fase):
         )
         print(f"{i + 1}: {elementos}")
 
-def imprime_paginas(paginas, fase):
-    print(f"Fase {fase}")
+def imprime_paginas(paginas, fase, m, contador_escrita):
+    # grafico
+    total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
+    alfa = contador_escrita / total_registros
+    alfa = round(alfa, 2)
+    valores_alfa.append(alfa)
+    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
+
+    beta = calculoBeta(m, paginas)
+    print(f"Fase {fase} {beta}")
     for i, pagina in enumerate(paginas):
         elementos = ' '.join(f"{{{' '.join(map(str, sublista))}}}" for sublista in pagina)
         print(f"{i + 1}: {elementos}")
 
 def polifasica(m, k, r, n, numeros):
     paginas = gera_fase_inicial(k, n, numeros)
-
+    # verificar
+    contador_escrita = sum(len(pagina) for pagina in paginas if pagina)
     fase = 0
     while True:
-        imprime_paginas(paginas, fase)
+        imprime_paginas(paginas, fase, m, contador_escrita)
 
         # Encontra a menor página não vazia e o índice da página vazia
         tamanhos = [len(pagina) for pagina in paginas]
@@ -280,6 +353,7 @@ def polifasica(m, k, r, n, numeros):
 
             nova_lista.append(sorted(elementos_para_remover))
 
+        contador_escrita += sum(len(sublista) for sublista in nova_lista)
         paginas[index_pagina_vazia] = nova_lista
 
         fase += 1
@@ -289,7 +363,7 @@ def polifasica(m, k, r, n, numeros):
         if len(paginas_nao_vazias) == 1:
             break
 
-    imprime_paginas_final(paginas, fase)
+    imprime_paginas_final(paginas, fase, contador_escrita)
 
 def cascata():
     def merge(left, right):
@@ -337,10 +411,15 @@ with open("entrada.txt", "r") as file:
     numeros = list(map(int, file.readline().split()))
 
 if N == "B":
-    multicaminhos(m, k, r, n, numeros)
+     multicaminhos(m, k, r, n, numeros)
+
 elif N == 'P':
     polifasica(m, k, r, n, numeros)
+
 elif N == 'C':
     cascata()
 else:
     print("Entrada inválida.")
+
+print()
+print(f"Sequencias iniciais para m = {m} : {valores_r[0]}")
