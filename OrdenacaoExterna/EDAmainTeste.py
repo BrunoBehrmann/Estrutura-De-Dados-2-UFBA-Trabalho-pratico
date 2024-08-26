@@ -1,14 +1,11 @@
 import heapq
-
-valores_alfa = []
-valores_r = []
+lista_alfa = []
+lista_r = []
 
 def calculoBeta(m, paginas):
     r = sum(len(pagina) for pagina in paginas if pagina)
-    # Calcular a soma dos tamanhos das sublistas
     total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
     Beta = (1 / (m * r)) * total_registros
-    # Arredondar Beta para até dois decimais
     Beta = round(Beta, 2)
     return Beta
 
@@ -16,8 +13,6 @@ def imprimir_estado(fase, paginas, m, contador_escrita):
     total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
     alfa = contador_escrita / total_registros
     alfa = round(alfa, 2)
-    valores_alfa.append(alfa)
-    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
 
     beta = calculoBeta(m, paginas)
     print(f"fase {fase} {beta}")
@@ -301,8 +296,6 @@ def imprime_paginas_final(paginas, fase, contador_escrita):
     total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
     alfa = contador_escrita / total_registros
     alfa = round(alfa, 2)
-    valores_alfa.append(alfa)
-    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
 
     beta = calculoBeta(m, paginas)
     print(f"Fase {fase} {beta}")
@@ -312,14 +305,16 @@ def imprime_paginas_final(paginas, fase, contador_escrita):
             for sublista in pagina if any(elem != float('inf') for elem in sublista)
         )
         print(f"{i + 1}: {elementos}")
+    print(f"final {alfa}")
 
 def imprime_paginas(paginas, fase, m, contador_escrita):
     # grafico
     total_registros = sum(len(subpagina) for pagina in paginas for subpagina in pagina if pagina)
     alfa = contador_escrita / total_registros
     alfa = round(alfa, 2)
-    valores_alfa.append(alfa)
-    valores_r.append(sum(len(pagina) for pagina in paginas if pagina))
+
+    lista_alfa.append(alfa)
+    lista_r.append(sum(len(pagina) for pagina in paginas if pagina))
 
     beta = calculoBeta(m, paginas)
     print(f"Fase {fase} {beta}")
@@ -342,19 +337,17 @@ def polifasica(m, k, r, n, numeros):
 
         if menor_pagina == 0:
             break
-
-        # Cria uma nova lista ordenada na página vazia
-        nova_lista = []
+        lista = []
         for _ in range(menor_pagina):
             elementos_para_remover = []
             for i in range(k):
                 if i != index_pagina_vazia and paginas[i]:
                     elementos_para_remover.extend(paginas[i].pop(0))
 
-            nova_lista.append(sorted(elementos_para_remover))
+            lista.append(sorted(elementos_para_remover))
 
-        contador_escrita += sum(len(sublista) for sublista in nova_lista)
-        paginas[index_pagina_vazia] = nova_lista
+        contador_escrita += sum(len(sublista) for sublista in lista)
+        paginas[index_pagina_vazia] = lista
 
         fase += 1
 
@@ -365,44 +358,49 @@ def polifasica(m, k, r, n, numeros):
 
     imprime_paginas_final(paginas, fase, contador_escrita)
 
-def cascata():
-    def merge(left, right):
-        sorted_list = []
-        while left and right:
-            if left[0] <= right[0]:
-                sorted_list.append(left.pop(0))
-            else:
-                sorted_list.append(right.pop(0))
-        sorted_list.extend(left or right)
-        return sorted_list
+def cascata(m, k, r, n, numeros):
+    paginas = gera_fase_inicial(k, n, numeros)
+    contador_escrita = sum(len(pagina) for pagina in paginas if pagina)
+    fase = 0
+    travado = [False] * k  # Lista para monitorar quais páginas estão "travadas"
 
-    def merge_sort(arr):
-        if len(arr) <= 1:
-            return arr
-        mid = len(arr) // 2
-        left_half = merge_sort(arr[:mid])
-        right_half = merge_sort(arr[mid:])
-        return merge(left_half, right_half)
+    while True:
+        imprime_paginas(paginas, fase, m, contador_escrita)
+        if sum(len(pagina) for pagina in paginas if pagina) == 2:
+            travado = [False] * k
+        tamanhos = [len(pagina) for pagina in paginas]
+        menor_pagina = min([tamanhos[i] for i in range(k) if tamanhos[i] > 0 and not travado[i]])
+        index_pagina_vazia = tamanhos.index(0)
 
-    sublists = [numeros[i:i + r] for i in range(0, len(numeros), r)]
-    print("Divisão inicial das sublistas:")
-    for i, sublist in enumerate(sublists):
-        print(f"Sublista {i + 1}: {sublist}")
+        if menor_pagina == 0:
+            break
+        lista = []
+        for _ in range(menor_pagina):
+            elementos_para_remover = []
+            for i in range(k):
+                # Verifica se a página não é a vazia ou travada antes de remover elementos
+                if i != index_pagina_vazia and paginas[i] and not travado[i]:
+                    elementos_para_remover.extend(paginas[i].pop(0))
 
-    sorted_sublists = [merge_sort(sublist) for sublist in sublists]
+            lista.append(sorted(elementos_para_remover))
 
-    while len(sorted_sublists) > 1:
-        merged_sublists = []
-        for i in range(0, len(sorted_sublists), 2):
-            if i + 1 < len(sorted_sublists):
-                merged_sublists.append(merge(sorted_sublists[i], sorted_sublists[i + 1]))
-            else:
-                merged_sublists.append(sorted_sublists[i])
-        sorted_sublists = merged_sublists
+        contador_escrita += sum(len(pagina) for pagina in lista if pagina)
+        paginas[index_pagina_vazia] = lista
+        travado[index_pagina_vazia] = True  # Trava a página onde foi inserida a nova lista
 
-    sorted_list = sorted_sublists[0] if sorted_sublists else []
-    print("Lista ordenada pelo método cascata:\n", sorted_list)
-    return sorted_list
+        fase += 1
+        paginas_nao_vazias = [pagina for pagina in paginas if len(pagina) > 0]
+        paginas_travadas_nao_vazias = [pagina for i, pagina in enumerate(paginas) if len(pagina) > 0 and travado[i]]
+
+        # Se sobrar apenas uma página não vazia e uma vazia (com páginas travadas), desbloqueia todas as páginas
+        if travado.count(True) == 2:
+            travado = [False] * k
+
+        if len(paginas_nao_vazias) == 1:
+            break
+
+    imprime_paginas_final(paginas, fase, contador_escrita)
+
 
 # Código principal
 with open("entrada.txt", "r") as file:
@@ -417,9 +415,10 @@ elif N == 'P':
     polifasica(m, k, r, n, numeros)
 
 elif N == 'C':
-    cascata()
+    cascata(m, k, r, n, numeros)
 else:
     print("Entrada inválida.")
 
-print()
-print(f"Sequencias iniciais para m = {m} : {valores_r[0]}")
+print(f"k = {k}")
+print(f"f: lista alfa = {lista_alfa}")
+print(f"f: lista r = {lista_r}")

@@ -332,19 +332,17 @@ def polifasica(m, k, r, n, numeros):
 
         if menor_pagina == 0:
             break
-
-        # Cria uma nova lista ordenada na página vazia
-        nova_lista = []
+        lista = []
         for _ in range(menor_pagina):
             elementos_para_remover = []
             for i in range(k):
                 if i != index_pagina_vazia and paginas[i]:
                     elementos_para_remover.extend(paginas[i].pop(0))
 
-            nova_lista.append(sorted(elementos_para_remover))
+            lista.append(sorted(elementos_para_remover))
 
-        contador_escrita += sum(len(sublista) for sublista in nova_lista)
-        paginas[index_pagina_vazia] = nova_lista
+        contador_escrita += sum(len(sublista) for sublista in lista)
+        paginas[index_pagina_vazia] = lista
 
         fase += 1
 
@@ -355,44 +353,37 @@ def polifasica(m, k, r, n, numeros):
 
     imprime_paginas_final(paginas, fase, contador_escrita)
 
-def cascata():
-    def merge(left, right):
-        sorted_list = []
-        while left and right:
-            if left[0] <= right[0]:
-                sorted_list.append(left.pop(0))
-            else:
-                sorted_list.append(right.pop(0))
-        sorted_list.extend(left or right)
-        return sorted_list
+def cascata(m, k, r, n, numeros):
+    paginas = gera_fase_inicial(k, n, numeros)
+    # verificar
+    contador_escrita = sum(len(pagina) for pagina in paginas if pagina)
+    fase = 0
+    while True:
+        imprime_paginas(paginas, fase, m, contador_escrita)
+        tamanhos = [len(pagina) for pagina in paginas]
+        menor_pagina = min([tamanho for tamanho in tamanhos if tamanho > 0])
+        index_pagina_vazia = tamanhos.index(0)
 
-    def merge_sort(arr):
-        if len(arr) <= 1:
-            return arr
-        mid = len(arr) // 2
-        left_half = merge_sort(arr[:mid])
-        right_half = merge_sort(arr[mid:])
-        return merge(left_half, right_half)
+        if menor_pagina == 0:
+            break
+        lista = []
+        for _ in range(menor_pagina):
+            elementos_para_remover = []
+            for i in range(k):
+                if i != index_pagina_vazia and paginas[i]:
+                    elementos_para_remover.extend(paginas[i].pop(0))
 
-    sublists = [numeros[i:i + r] for i in range(0, len(numeros), r)]
-    print("Divisão inicial das sublistas:")
-    for i, sublist in enumerate(sublists):
-        print(f"Sublista {i + 1}: {sublist}")
+            lista.append(sorted(elementos_para_remover))
 
-    sorted_sublists = [merge_sort(sublist) for sublist in sublists]
+        contador_escrita += sum(len(sublista) for sublista in lista)
+        paginas[index_pagina_vazia] = lista
 
-    while len(sorted_sublists) > 1:
-        merged_sublists = []
-        for i in range(0, len(sorted_sublists), 2):
-            if i + 1 < len(sorted_sublists):
-                merged_sublists.append(merge(sorted_sublists[i], sorted_sublists[i + 1]))
-            else:
-                merged_sublists.append(sorted_sublists[i])
-        sorted_sublists = merged_sublists
+        fase += 1
+        paginas_nao_vazias = [pagina for pagina in paginas if len(pagina) > 0]
+        if len(paginas_nao_vazias) == 1:
+            break
 
-    sorted_list = sorted_sublists[0] if sorted_sublists else []
-    print("Lista ordenada pelo método cascata:\n", sorted_list)
-    return sorted_list
+    imprime_paginas_final(paginas, fase, contador_escrita)
 
 # Código principal
 with open("entrada.txt", "r") as file:
@@ -407,6 +398,6 @@ elif N == 'P':
     polifasica(m, k, r, n, numeros)
 
 elif N == 'C':
-    cascata()
+    cascata(m, k, r, n, numeros)
 else:
     print("Entrada inválida.")
